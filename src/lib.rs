@@ -14,7 +14,7 @@ pub fn app_provider() -> impl AppProvider {
 
     #[cfg(not(target_os = "linux"))]
     {
-        platforms::mock::MockProvider
+        platforms::mock::MockProvider::new()
     }
 }
 
@@ -28,4 +28,8 @@ pub fn app_launcher() -> impl AppLauncher {
     {
         app_launcher::MockLauncher::default()
     }
+}
+
+pub fn mock_app_provider() -> impl AppProvider {
+    platforms::mock::MockProvider::new()
 }
