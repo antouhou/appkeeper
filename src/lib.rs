@@ -1,10 +1,12 @@
+use crate::app_launcher::AppLauncher;
 use crate::app_provider::AppProvider;
 
-mod app_entry;
-mod app_provider;
+pub mod app_entry;
+pub mod app_launcher;
+pub mod app_provider;
 mod platforms;
 
-pub fn get_provider() -> impl AppProvider {
+pub fn app_provider() -> impl AppProvider {
     #[cfg(target_os = "linux")]
     {
         platforms::linux::LinuxAppProvider::new()
@@ -13,5 +15,17 @@ pub fn get_provider() -> impl AppProvider {
     #[cfg(not(target_os = "linux"))]
     {
         platforms::mock::MockProvider
+    }
+}
+
+pub fn app_launcher() -> impl AppLauncher {
+    #[cfg(target_os = "linux")]
+    {
+        platforms::linux::LinuxAppLauncher::new()
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        app_launcher::MockLauncher::default()
     }
 }
