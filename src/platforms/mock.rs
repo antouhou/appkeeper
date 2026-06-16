@@ -358,7 +358,7 @@ fn app(spec: MockApp<'_>) -> AppEntry {
         categories: spec
             .categories
             .iter()
-            .map(std::string::ToString::to_string)
+            .map(ToString::to_string)
             .collect(),
         status: AppStatus {
             is_running: spec.is_running,
