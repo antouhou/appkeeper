@@ -30,11 +30,21 @@ pub struct LaunchCommand {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LaunchArg {
     Literal(String),
+    Template(Vec<LaunchArgPart>),
     File,
     Files,
     Url,
     Urls,
     AppName,
-    Icon,
-    DesktopFile,
+    Icon(String),
+    DesktopFile(PathBuf),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LaunchArgPart {
+    Literal(String),
+    File,
+    Url,
+    AppName,
+    DesktopFile(PathBuf),
 }

@@ -330,8 +330,6 @@ impl AppProvider for MockProvider {
     fn subscribe(&mut self, _cb: fn(AppProviderEvent)) {
         // Mock data is static for now.
     }
-
-    fn rescan(&mut self) {}
 }
 
 struct MockApp<'a> {

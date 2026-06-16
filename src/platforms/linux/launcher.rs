@@ -1,26 +1,7 @@
 use std::process::Command;
 
-use crate::app_entry::{AppEntry, LaunchArg, LaunchCommand};
+use crate::app_entry::{AppEntry, LaunchArg, LaunchArgPart, LaunchCommand};
 use crate::app_launcher::{AppLauncher, LaunchError, LaunchOptions};
-use crate::app_provider::{AppProvider, AppProviderEvent};
-
-pub struct LinuxAppProvider;
-
-impl AppProvider for LinuxAppProvider {
-    fn list(&self) -> Vec<AppEntry> {
-        vec![]
-    }
-
-    fn subscribe(&mut self, _cb: fn(AppProviderEvent)) {}
-
-    fn rescan(&mut self) {}
-}
-
-impl LinuxAppProvider {
-    pub fn new() -> LinuxAppProvider {
-        LinuxAppProvider {}
-    }
-}
 
 pub struct LinuxAppLauncher;
 
@@ -79,18 +60,45 @@ fn resolve_launch_args(
                 }
             }
             LaunchArg::Urls => args.extend(options.urls.iter().cloned()),
+            LaunchArg::Template(parts) => {
+                args.push(resolve_launch_arg_template(app, parts, &options))
+            }
             LaunchArg::AppName => args.push(app.name.clone()),
-            LaunchArg::Icon => {
-                if let Some(icon_path) = &app.icon_path {
-                    args.push("--icon".to_string());
-                    args.push(icon_path.to_string_lossy().into_owned());
-                }
+            LaunchArg::Icon(icon) => {
+                args.push("--icon".to_string());
+                args.push(icon.clone());
             }
-            LaunchArg::DesktopFile => {
-                return Err(LaunchError::UnsupportedArgument("desktop file"));
-            }
+            LaunchArg::DesktopFile(path) => args.push(path.to_string_lossy().into_owned()),
         }
     }
 
     Ok(args)
+}
+
+fn resolve_launch_arg_template(
+    app: &AppEntry,
+    parts: &[LaunchArgPart],
+    options: &LaunchOptions,
+) -> String {
+    let mut value = String::new();
+
+    for part in parts {
+        match part {
+            LaunchArgPart::Literal(part) => value.push_str(part),
+            LaunchArgPart::File => {
+                if let Some(file) = options.files.first() {
+                    value.push_str(&file.to_string_lossy());
+                }
+            }
+            LaunchArgPart::Url => {
+                if let Some(url) = options.urls.first() {
+                    value.push_str(url);
+                }
+            }
+            LaunchArgPart::AppName => value.push_str(&app.name),
+            LaunchArgPart::DesktopFile(path) => value.push_str(&path.to_string_lossy()),
+        }
+    }
+
+    value
 }
