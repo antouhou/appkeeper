@@ -355,11 +355,7 @@ fn app(spec: MockApp<'_>) -> AppEntry {
         publisher: Some(spec.publisher.to_string()),
         install_location: Some(mock_path(spec.id)),
         icon_path: Some(mock_icon(spec.icon)),
-        categories: spec
-            .categories
-            .iter()
-            .map(ToString::to_string)
-            .collect(),
+        categories: spec.categories.iter().map(ToString::to_string).collect(),
         status: AppStatus {
             is_running: spec.is_running,
             is_launching: spec.is_launching,
