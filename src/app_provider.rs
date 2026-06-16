@@ -11,4 +11,3 @@ pub trait AppProvider {
     fn subscribe(&mut self, cb: fn(AppProviderEvent));
     fn rescan(&mut self);
 }
-

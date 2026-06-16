@@ -7,11 +7,9 @@ impl AppProvider for LinuxAppProvider {
     fn list(&self) -> Vec<AppEntry> {
         vec![]
     }
-    
-    fn subscribe(&mut self, cb: fn(AppProviderEvent)) {
-        
-    }
-    
+
+    fn subscribe(&mut self, _cb: fn(AppProviderEvent)) {}
+
     fn rescan(&mut self) {}
 }
 

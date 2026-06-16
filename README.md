@@ -1,3 +1,3 @@
-## Stenographer
+## Appkeeper
 
-Stenographer is a library that provided a cross-platform way to list and manage installed apps.
+`appkeeper` is a library that provides a cross-platform way to list and manage installed apps.

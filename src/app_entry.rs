@@ -1,3 +1,1 @@
-pub struct AppEntry {
-
-}
+pub struct AppEntry {}
