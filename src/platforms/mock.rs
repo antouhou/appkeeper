@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use crate::app_entry::{AppEntry, AppStatus, LaunchArg, LaunchCommand};
+use crate::app_entry::{AppEntry, AppIcon, AppIconSize, AppStatus, LaunchArg, LaunchCommand};
 use crate::app_provider::{AppProvider, AppProviderEvent};
 
 pub struct MockProvider {}
@@ -352,7 +352,10 @@ fn app(spec: MockApp<'_>) -> AppEntry {
         description: Some(format!("{} mock application", spec.name)),
         publisher: Some(spec.publisher.to_string()),
         install_location: Some(mock_path(spec.id)),
-        icon_path: Some(mock_icon(spec.icon)),
+        icons: vec![AppIcon {
+            path: mock_icon(spec.icon),
+            size: AppIconSize::Unknown,
+        }],
         categories: spec.categories.iter().map(ToString::to_string).collect(),
         status: AppStatus {
             is_running: spec.is_running,

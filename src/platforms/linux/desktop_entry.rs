@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::app_entry::{AppEntry, AppStatus};
 
 use super::desktop_entry_parser::DesktopEntry;
-use super::paths::{command_exists, resolve_icon_path};
+use super::paths::{command_exists, resolve_icon_paths};
 
 /// Reads desktop file at a given path and tries to convert it into an `AppEntry`
 pub(super) fn desktop_file_to_app(path: &Path) -> Option<AppEntry> {
@@ -38,9 +38,10 @@ pub(super) fn desktop_file_to_app(path: &Path) -> Option<AppEntry> {
         description: entry.string("Comment"),
         publisher: None,
         install_location: path.parent().map(Path::to_path_buf),
-        icon_path: entry
+        icons: entry
             .string("Icon")
-            .and_then(|icon| resolve_icon_path(&icon)),
+            .map(|icon| resolve_icon_paths(&icon))
+            .unwrap_or_default(),
         categories: entry
             .string_list("Categories")
             .map(|categories| {
