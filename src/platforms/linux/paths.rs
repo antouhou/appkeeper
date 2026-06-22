@@ -133,47 +133,54 @@ fn icon_candidates(icon: &str) -> Vec<AppIcon> {
 
     let extensions = ["svg", "png", "xpm"];
 
+    icon_candidates_in_roots(icon, &roots, extensions)
+}
+
+fn icon_candidates_in_roots(icon: &str, roots: &[PathBuf], extensions: [&str; 3]) -> Vec<AppIcon> {
     let mut candidates = Vec::new();
 
     for root in roots {
-        push_icon_candidate(
-            &mut candidates,
-            root.join("pixmaps").join(icon),
-            AppIconSize::Unknown,
-        );
+        push_hicolor_icon_candidates(&mut candidates, root, icon, extensions);
+    }
 
-        for extension in extensions {
-            let path = root.join("pixmaps").join(format!("{icon}.{extension}"));
-            let size = icon_size_from_extension(extension);
-            push_icon_candidate(&mut candidates, path, size);
-        }
-
-        push_theme_icon_candidates(&mut candidates, &root, icon, extensions);
+    for root in roots {
+        push_pixmap_icon_candidates(&mut candidates, root, icon, extensions);
     }
 
     dedupe_icons(candidates)
 }
 
-fn push_theme_icon_candidates(
+fn push_pixmap_icon_candidates(
     candidates: &mut Vec<AppIcon>,
     root: &Path,
     icon: &str,
     extensions: [&str; 3],
 ) {
-    let icons_dir = root.join("icons");
-    let Ok(themes) = fs::read_dir(icons_dir) else {
-        return;
-    };
+    push_icon_candidate(
+        candidates,
+        root.join("pixmaps").join(icon),
+        AppIconSize::Unknown,
+    );
 
-    for theme in themes.flatten() {
-        let theme_path = theme.path();
-
-        if !theme_path.is_dir() {
-            continue;
-        }
-
-        push_theme_context_icon_candidates(candidates, &theme_path, icon, extensions);
+    for extension in extensions {
+        let path = root.join("pixmaps").join(format!("{icon}.{extension}"));
+        let size = icon_size_from_extension(extension);
+        push_icon_candidate(candidates, path, size);
     }
+}
+
+fn push_hicolor_icon_candidates(
+    candidates: &mut Vec<AppIcon>,
+    root: &Path,
+    icon: &str,
+    extensions: [&str; 3],
+) {
+    push_theme_context_icon_candidates(
+        candidates,
+        &root.join("icons").join("hicolor"),
+        icon,
+        extensions,
+    );
 }
 
 fn push_theme_context_icon_candidates(
