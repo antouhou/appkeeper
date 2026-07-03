@@ -52,7 +52,7 @@ pub(super) fn desktop_file_to_app(path: &Path) -> Option<AppEntry> {
             })
             .unwrap_or_default(),
         status: AppStatus::default(),
-        launch: entry.launch_command(path, entry.boolean("Terminal")),
+        launch_command: entry.launch_command(path, entry.boolean("Terminal")),
     })
 }
 

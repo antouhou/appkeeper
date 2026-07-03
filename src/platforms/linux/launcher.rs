@@ -13,7 +13,10 @@ impl LinuxAppLauncher {
 
 impl AppLauncher for LinuxAppLauncher {
     fn launch(&self, app: &AppEntry, options: LaunchOptions) -> Result<(), LaunchError> {
-        let launch = app.launch.as_ref().ok_or(LaunchError::NotLaunchable)?;
+        let launch = app
+            .launch_command
+            .as_ref()
+            .ok_or(LaunchError::NotLaunchable)?;
         let args = resolve_launch_args(app, launch, options)?;
 
         let mut command = if launch.requires_terminal {

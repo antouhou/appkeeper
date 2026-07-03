@@ -327,6 +327,10 @@ impl AppProvider for MockProvider {
         ]
     }
 
+    fn entry(&self, id: String) -> Option<AppEntry> {
+        self.list().into_iter().find(|entry| entry.id == id)
+    }
+
     fn subscribe(&mut self, _cb: fn(AppProviderEvent)) {
         // Mock data is static for now.
     }
@@ -361,7 +365,7 @@ fn app(spec: MockApp<'_>) -> AppEntry {
             is_running: spec.is_running,
             is_launching: spec.is_launching,
         },
-        launch: Some(LaunchCommand {
+        launch_command: Some(LaunchCommand {
             executable: mock_path(spec.id).join(spec.id),
             args: spec
                 .args

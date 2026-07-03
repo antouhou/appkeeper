@@ -9,5 +9,6 @@ pub enum AppProviderEvent {
 
 pub trait AppProvider {
     fn list(&self) -> Vec<AppEntry>;
+    fn entry(&self, id: String) -> Option<AppEntry>;
     fn subscribe(&mut self, cb: fn(AppProviderEvent));
 }

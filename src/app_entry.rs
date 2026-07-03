@@ -11,7 +11,7 @@ pub struct AppEntry {
     pub icons: Vec<AppIcon>,
     pub categories: Vec<String>,
     pub status: AppStatus,
-    pub launch: Option<LaunchCommand>,
+    pub launch_command: Option<LaunchCommand>,
 }
 
 impl AppEntry {
@@ -116,7 +116,7 @@ mod tests {
             ],
             categories: Vec::new(),
             status: AppStatus::default(),
-            launch: None,
+            launch_command: None,
         };
 
         assert_eq!(
