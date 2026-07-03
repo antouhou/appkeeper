@@ -37,6 +37,16 @@ impl AppProvider for LinuxAppProvider {
         apps
     }
 
+    fn entry(&self, id: String) -> Option<AppEntry> {
+        let apps = self
+            .apps
+            .read()
+            .expect("linux app provider apps lock was poisoned");
+
+        // TODO: this is stupid, add a separate cache for this
+        apps.values().find(|app| app.id == id).cloned()
+    }
+
     fn subscribe(&mut self, cb: fn(AppProviderEvent)) {
         self.callbacks
             .lock()
