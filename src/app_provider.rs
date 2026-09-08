@@ -12,5 +12,6 @@ pub trait AppProvider {
     fn list(&self) -> Vec<AppEntry>;
     /// Looks up an app by ID. Returns `None` for unsupported IDs or missing apps.
     fn entry(&self, id: &AppId) -> Option<AppEntry>;
-    fn subscribe(&mut self, cb: fn(AppProviderEvent));
+    /// Registers a callback for application catalog changes.
+    fn subscribe(&mut self, callback: impl FnMut(AppProviderEvent) + Send + 'static);
 }
