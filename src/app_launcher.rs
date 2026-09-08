@@ -3,10 +3,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::app_entry::AppEntry;
 
-pub trait AppLauncher {
-    fn launch(&self, app: &AppEntry, options: LaunchOptions) -> Result<(), LaunchError>;
-}
-
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct LaunchOptions {
     pub files: Vec<PathBuf>,
@@ -23,6 +19,10 @@ pub enum LaunchError {
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
+}
+
+pub trait AppLauncher {
+    fn launch(&self, app: &AppEntry, options: LaunchOptions) -> Result<(), LaunchError>;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

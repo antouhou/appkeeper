@@ -1,3 +1,4 @@
+use crate::AppId;
 use crate::app_entry::AppEntry;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -9,6 +10,7 @@ pub enum AppProviderEvent {
 
 pub trait AppProvider {
     fn list(&self) -> Vec<AppEntry>;
-    fn entry(&self, id: String) -> Option<AppEntry>;
+    /// Looks up an app by ID. Returns `None` for unsupported IDs or missing apps.
+    fn entry(&self, id: &AppId) -> Option<AppEntry>;
     fn subscribe(&mut self, cb: fn(AppProviderEvent));
 }
