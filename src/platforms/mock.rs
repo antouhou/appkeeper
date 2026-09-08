@@ -1,9 +1,60 @@
 #![allow(dead_code)]
-
-use std::path::PathBuf;
-
+use crate::AppId;
 use crate::app_entry::{AppEntry, AppIcon, AppIconSize, AppStatus, LaunchArg, LaunchCommand};
 use crate::app_provider::{AppProvider, AppProviderEvent};
+use std::path::PathBuf;
+
+struct MockApp<'a> {
+    id: &'a str,
+    name: &'a str,
+    version: &'a str,
+    publisher: &'a str,
+    icon: &'a str,
+    categories: &'a [&'a str],
+    is_running: bool,
+    is_launching: bool,
+    args: &'a [&'a str],
+}
+
+fn mock_icon(file_name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("mock_icons")
+        .join(file_name)
+}
+
+fn mock_path(id: &str) -> PathBuf {
+    PathBuf::from("/mock/apps").join(id)
+}
+
+fn app(spec: MockApp<'_>) -> AppEntry {
+    AppEntry {
+        id: AppId::from_parts("mock", spec.id),
+        name: spec.name.to_string(),
+        version: Some(spec.version.to_string()),
+        description: Some(format!("{} mock application", spec.name)),
+        publisher: Some(spec.publisher.to_string()),
+        install_location: Some(mock_path(spec.id)),
+        icons: vec![AppIcon {
+            path: mock_icon(spec.icon),
+            size: AppIconSize::Unknown,
+        }],
+        categories: spec.categories.iter().map(ToString::to_string).collect(),
+        status: AppStatus {
+            is_running: spec.is_running,
+            is_launching: spec.is_launching,
+        },
+        launch_command: Some(LaunchCommand {
+            executable: mock_path(spec.id).join(spec.id),
+            args: spec
+                .args
+                .iter()
+                .map(|arg| LaunchArg::Literal((*arg).to_string()))
+                .collect(),
+            requires_terminal: false,
+        }),
+    }
+}
 
 pub struct MockProvider {}
 
@@ -327,63 +378,11 @@ impl AppProvider for MockProvider {
         ]
     }
 
-    fn entry(&self, id: String) -> Option<AppEntry> {
-        self.list().into_iter().find(|entry| entry.id == id)
+    fn entry(&self, id: &AppId) -> Option<AppEntry> {
+        self.list().into_iter().find(|entry| &entry.id == id)
     }
 
     fn subscribe(&mut self, _cb: fn(AppProviderEvent)) {
         // Mock data is static for now.
     }
-}
-
-struct MockApp<'a> {
-    id: &'a str,
-    name: &'a str,
-    version: &'a str,
-    publisher: &'a str,
-    icon: &'a str,
-    categories: &'a [&'a str],
-    is_running: bool,
-    is_launching: bool,
-    args: &'a [&'a str],
-}
-
-fn app(spec: MockApp<'_>) -> AppEntry {
-    AppEntry {
-        id: spec.id.to_string(),
-        name: spec.name.to_string(),
-        version: Some(spec.version.to_string()),
-        description: Some(format!("{} mock application", spec.name)),
-        publisher: Some(spec.publisher.to_string()),
-        install_location: Some(mock_path(spec.id)),
-        icons: vec![AppIcon {
-            path: mock_icon(spec.icon),
-            size: AppIconSize::Unknown,
-        }],
-        categories: spec.categories.iter().map(ToString::to_string).collect(),
-        status: AppStatus {
-            is_running: spec.is_running,
-            is_launching: spec.is_launching,
-        },
-        launch_command: Some(LaunchCommand {
-            executable: mock_path(spec.id).join(spec.id),
-            args: spec
-                .args
-                .iter()
-                .map(|arg| LaunchArg::Literal((*arg).to_string()))
-                .collect(),
-            requires_terminal: false,
-        }),
-    }
-}
-
-fn mock_icon(file_name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("src")
-        .join("mock_icons")
-        .join(file_name)
-}
-
-fn mock_path(id: &str) -> PathBuf {
-    PathBuf::from("/mock/apps").join(id)
 }

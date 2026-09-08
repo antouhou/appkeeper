@@ -1,7 +1,9 @@
 use crate::app_launcher::AppLauncher;
 use crate::app_provider::AppProvider;
+pub use app_id::AppId;
 
 pub mod app_entry;
+pub mod app_id;
 pub mod app_launcher;
 pub mod app_provider;
 mod platforms;

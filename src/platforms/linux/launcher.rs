@@ -3,35 +3,32 @@ use std::process::Command;
 use crate::app_entry::{AppEntry, LaunchArg, LaunchArgPart, LaunchCommand};
 use crate::app_launcher::{AppLauncher, LaunchError, LaunchOptions};
 
-pub struct LinuxAppLauncher;
+fn resolve_launch_arg_template(
+    app: &AppEntry,
+    parts: &[LaunchArgPart],
+    options: &LaunchOptions,
+) -> String {
+    let mut value = String::new();
 
-impl LinuxAppLauncher {
-    pub fn new() -> Self {
-        Self
+    for part in parts {
+        match part {
+            LaunchArgPart::Literal(part) => value.push_str(part),
+            LaunchArgPart::File => {
+                if let Some(file) = options.files.first() {
+                    value.push_str(&file.to_string_lossy());
+                }
+            }
+            LaunchArgPart::Url => {
+                if let Some(url) = options.urls.first() {
+                    value.push_str(url);
+                }
+            }
+            LaunchArgPart::AppName => value.push_str(&app.name),
+            LaunchArgPart::DesktopFile(path) => value.push_str(&path.to_string_lossy()),
+        }
     }
-}
 
-impl AppLauncher for LinuxAppLauncher {
-    fn launch(&self, app: &AppEntry, options: LaunchOptions) -> Result<(), LaunchError> {
-        let launch = app
-            .launch_command
-            .as_ref()
-            .ok_or(LaunchError::NotLaunchable)?;
-        let args = resolve_launch_args(app, launch, options)?;
-
-        let mut command = if launch.requires_terminal {
-            let mut command = Command::new("x-terminal-emulator");
-            command.arg("-e").arg(&launch.executable);
-            command
-        } else {
-            Command::new(&launch.executable)
-        };
-
-        command.args(args);
-        command.spawn()?;
-
-        Ok(())
-    }
+    value
 }
 
 fn resolve_launch_args(
@@ -78,30 +75,33 @@ fn resolve_launch_args(
     Ok(args)
 }
 
-fn resolve_launch_arg_template(
-    app: &AppEntry,
-    parts: &[LaunchArgPart],
-    options: &LaunchOptions,
-) -> String {
-    let mut value = String::new();
+pub struct LinuxAppLauncher;
 
-    for part in parts {
-        match part {
-            LaunchArgPart::Literal(part) => value.push_str(part),
-            LaunchArgPart::File => {
-                if let Some(file) = options.files.first() {
-                    value.push_str(&file.to_string_lossy());
-                }
-            }
-            LaunchArgPart::Url => {
-                if let Some(url) = options.urls.first() {
-                    value.push_str(url);
-                }
-            }
-            LaunchArgPart::AppName => value.push_str(&app.name),
-            LaunchArgPart::DesktopFile(path) => value.push_str(&path.to_string_lossy()),
-        }
+impl LinuxAppLauncher {
+    pub fn new() -> Self {
+        Self
     }
+}
 
-    value
+impl AppLauncher for LinuxAppLauncher {
+    fn launch(&self, app: &AppEntry, options: LaunchOptions) -> Result<(), LaunchError> {
+        let launch = app
+            .launch_command
+            .as_ref()
+            .ok_or(LaunchError::NotLaunchable)?;
+        let args = resolve_launch_args(app, launch, options)?;
+
+        let mut command = if launch.requires_terminal {
+            let mut command = Command::new("x-terminal-emulator");
+            command.arg("-e").arg(&launch.executable);
+            command
+        } else {
+            Command::new(&launch.executable)
+        };
+
+        command.args(args);
+        command.spawn()?;
+
+        Ok(())
+    }
 }
