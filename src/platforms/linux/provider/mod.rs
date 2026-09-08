@@ -13,7 +13,8 @@ mod watcher;
 
 type AppCache = Arc<RwLock<AppCatalog>>;
 
-type AppCallbacks = Arc<Mutex<Vec<fn(AppProviderEvent)>>>;
+type AppCallback = Arc<Mutex<dyn FnMut(AppProviderEvent) + Send>>;
+type AppCallbacks = Arc<Mutex<Vec<AppCallback>>>;
 
 pub struct LinuxAppProvider {
     paths: Arc<SearchPaths>,
@@ -63,6 +64,9 @@ impl LinuxAppProvider {
                     if stopping.load(Ordering::Acquire) {
                         return;
                     }
+                    let mut callback = callback
+                        .lock()
+                        .expect("linux app provider callback lock was poisoned");
                     callback(event);
                 }
             }
@@ -102,11 +106,11 @@ impl AppProvider for LinuxAppProvider {
         apps
     }
 
-    fn subscribe(&mut self, cb: fn(AppProviderEvent)) {
+    fn subscribe(&mut self, callback: impl FnMut(AppProviderEvent) + Send + 'static) {
         self.callbacks
             .lock()
             .expect("linux app provider callbacks lock was poisoned")
-            .push(cb);
+            .push(Arc::new(Mutex::new(callback)));
         self.start_watcher();
     }
 }

@@ -382,7 +382,7 @@ impl AppProvider for MockProvider {
         self.list().into_iter().find(|entry| &entry.id == id)
     }
 
-    fn subscribe(&mut self, _cb: fn(AppProviderEvent)) {
+    fn subscribe(&mut self, _callback: impl FnMut(AppProviderEvent) + Send + 'static) {
         // Mock data is static for now.
     }
 }
