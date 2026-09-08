@@ -23,9 +23,11 @@ pub(super) fn changes(previous: &AppCatalog, next: &AppCatalog) -> Vec<AppProvid
     let ids = previous.keys().chain(next.keys()).collect::<BTreeSet<_>>();
     ids.into_iter()
         .filter_map(|id| match (previous.get(id), next.get(id)) {
-            (None, Some(_)) => Some(AppProviderEvent::Added),
-            (Some(_), None) => Some(AppProviderEvent::Removed),
-            (Some(before), Some(after)) if before != after => Some(AppProviderEvent::EntryUpdated),
+            (None, Some(entry)) => Some(AppProviderEvent::Added(entry.clone())),
+            (Some(_), None) => Some(AppProviderEvent::Removed(id.clone())),
+            (Some(before), Some(after)) if before != after => {
+                Some(AppProviderEvent::EntryUpdated(after.clone()))
+            }
             _ => None,
         })
         .collect()

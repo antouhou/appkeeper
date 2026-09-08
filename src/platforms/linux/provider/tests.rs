@@ -9,6 +9,8 @@ use std::os::unix;
 use std::os::unix::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
 use std::slice;
+use std::sync::mpsc;
+use std::time::Duration;
 use tempfile::TempDir;
 
 pub(super) const SYSTEM: &str =
@@ -130,13 +132,17 @@ fn effective_changes_cover_overrides_fallback_and_shadowed_updates() {
     let system_apps = load(&roots);
     assert_eq!(
         catalog::changes(&AppCatalog::new(), &system_apps),
-        [AppProviderEvent::Added]
+        [AppProviderEvent::Added(
+            system_apps[&id("app.desktop")].clone()
+        )]
     );
     write_entry(&user, "app.desktop", USER);
     let user_apps = load(&roots);
     assert_eq!(
         catalog::changes(&system_apps, &user_apps),
-        [AppProviderEvent::EntryUpdated]
+        [AppProviderEvent::EntryUpdated(
+            user_apps[&id("app.desktop")].clone()
+        )]
     );
     write_entry(
         &system,
@@ -149,23 +155,27 @@ fn effective_changes_cover_overrides_fallback_and_shadowed_updates() {
     assert_eq!(fallback[&id("app.desktop")].name, "Updated system");
     assert_eq!(
         catalog::changes(&user_apps, &fallback),
-        [AppProviderEvent::EntryUpdated]
+        [AppProviderEvent::EntryUpdated(
+            fallback[&id("app.desktop")].clone()
+        )]
     );
     write_entry(&user, "app.desktop", "[Desktop Entry]\nHidden=true\n");
     let hidden = load(&roots);
     assert_eq!(
         catalog::changes(&fallback, &hidden),
-        [AppProviderEvent::Removed]
+        [AppProviderEvent::Removed(id("app.desktop"))]
     );
     fs::remove_file(user.join("applications/app.desktop")).unwrap();
     assert_eq!(
         catalog::changes(&hidden, &load(&roots)),
-        [AppProviderEvent::Added]
+        [AppProviderEvent::Added(
+            fallback[&id("app.desktop")].clone()
+        )]
     );
     fs::remove_file(system.join("applications/app.desktop")).unwrap();
     assert_eq!(
         catalog::changes(&fallback, &load(&roots)),
-        [AppProviderEvent::Removed]
+        [AppProviderEvent::Removed(id("app.desktop"))]
     );
 }
 
@@ -210,4 +220,63 @@ fn directory_scan_failures_do_not_produce_partial_catalogs() {
     fs::create_dir_all(&broken).unwrap();
     fs::write(broken.join("applications"), "not a directory").unwrap();
     assert!(catalog::load_apps(&SearchPaths::from_data_dirs(vec![first, broken])).is_err());
+}
+
+#[test]
+fn subscription_delivers_changes_between_the_initial_list_and_registration() {
+    let directory = TempDir::new().unwrap();
+    write_entry(directory.path(), "app.desktop", SYSTEM);
+    let roots = vec![directory.path().to_path_buf()];
+    let mut provider = LinuxAppProvider::with_paths(SearchPaths::from_data_dirs(roots.clone()));
+    assert_eq!(provider.list()[0].name, "System");
+    write_entry(directory.path(), "app.desktop", USER);
+    let expected = load(&roots)[&id("app.desktop")].clone();
+    let (sender, receiver) = mpsc::channel();
+    provider.subscribe(move |event| sender.send(event).unwrap());
+    assert_eq!(
+        receiver.recv_timeout(Duration::from_secs(10)).unwrap(),
+        AppProviderEvent::EntryUpdated(expected.clone())
+    );
+    assert_eq!(provider.entry(&expected.id), Some(expected));
+}
+
+#[test]
+fn subscribers_receive_added_updated_and_removed_app_data() {
+    let directory = TempDir::new().unwrap();
+    let roots = vec![directory.path().to_path_buf()];
+    let mut provider = LinuxAppProvider::with_paths(SearchPaths::from_data_dirs(roots.clone()));
+    let (first_sender, first_receiver) = mpsc::channel();
+    let (second_sender, second_receiver) = mpsc::channel();
+    provider.subscribe(move |event| first_sender.send(event).unwrap());
+    provider.subscribe(move |event| second_sender.send(event).unwrap());
+
+    for (contents, added) in [(SYSTEM, true), (USER, false)] {
+        let temporary = directory.path().join("replacement.tmp");
+        let applications = directory.path().join("applications");
+        fs::create_dir_all(&applications).unwrap();
+        fs::write(&temporary, contents).unwrap();
+        fs::rename(temporary, applications.join("app.desktop")).unwrap();
+        let entry = load(&roots)[&id("app.desktop")].clone();
+        let expected = if added {
+            AppProviderEvent::Added(entry.clone())
+        } else {
+            AppProviderEvent::EntryUpdated(entry.clone())
+        };
+        for receiver in [&first_receiver, &second_receiver] {
+            assert_eq!(
+                receiver.recv_timeout(Duration::from_secs(10)).unwrap(),
+                expected
+            );
+        }
+        assert_eq!(provider.entry(&entry.id), Some(entry));
+    }
+
+    fs::remove_file(directory.path().join("applications/app.desktop")).unwrap();
+    for receiver in [&first_receiver, &second_receiver] {
+        assert_eq!(
+            receiver.recv_timeout(Duration::from_secs(10)).unwrap(),
+            AppProviderEvent::Removed(id("app.desktop"))
+        );
+    }
+    assert!(provider.entry(&id("app.desktop")).is_none());
 }

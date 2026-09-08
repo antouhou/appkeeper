@@ -67,7 +67,7 @@ impl LinuxAppProvider {
                     let mut callback = callback
                         .lock()
                         .expect("linux app provider callback lock was poisoned");
-                    callback(event);
+                    callback(event.clone());
                 }
             }
         }) {
